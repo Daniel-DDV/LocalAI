@@ -5,6 +5,7 @@ This folder provides one-click PowerShell scripts to control the LocalAI Docker 
 - `ai-off.ps1`: stop LocalAI and free VRAM for gaming
 - `ai-on.ps1`: start LocalAI and wait until `readyz` is up
 - `ai-warmup.ps1`: load the default chat model into memory
+- `ai-warmup-all.ps1`: sequentially warm chat + embedding + rerank (optional vision/TTS)
 - `ai-status.ps1`: show health and model availability
 
 Default assumptions:
@@ -30,6 +31,7 @@ From repo root (`D:\LocalAI`):
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\ai-off.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\ai-on.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\ai-warmup.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\ai-warmup-all.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\ai-status.ps1
 ```
 
@@ -37,6 +39,13 @@ Optional custom model for warmup:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\ai-warmup.ps1 -Model qwen2.5-7b-instruct
+```
+
+Optional extended warmup:
+
+```powershell
+# include vision and tts ping too
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\ai-warmup-all.ps1 -IncludeVision -IncludeTTS
 ```
 
 ## 3) Desktop button setup
@@ -62,6 +71,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "D:\LocalAI\scripts\wind
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "D:\LocalAI\scripts\windows\ai-warmup.ps1"
 ```
 
+`AI Warmup All`:
+```text
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "D:\LocalAI\scripts\windows\ai-warmup-all.ps1"
+```
+
 `AI Status`:
 ```text
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "D:\LocalAI\scripts\windows\ai-status.ps1"
@@ -77,7 +91,7 @@ Before gaming:
 
 After gaming:
 1. Click `AI ON`
-2. Click `AI Warmup`
+2. Click `AI Warmup` (or `AI Warmup All` if you need embeddings/rerank immediately)
 3. Optional: click `AI Status`
 
 ## 5) Optional env overrides
@@ -105,3 +119,5 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\ai-status.
   - run `ai-on.ps1` and check firewall/network config.
 - Warmup fails for model:
   - verify with `/v1/models` and use existing model id.
+- `ai-warmup-all.ps1` has partial failures:
+  - expected on limited VRAM; warm only the model(s) you need for this session.
