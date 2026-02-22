@@ -59,21 +59,42 @@ function Get-LocalAILanIPv4 {
         return "127.0.0.1"
     }
 
-    $private = $all | Where-Object {
-        $_.IPAddress -like "192.168.*" -or
-        $_.IPAddress -like "10.*" -or
-        $_.IPAddress -match "^172\.(1[6-9]|2[0-9]|3[0-1])\."
+    $isPrivate = {
+        param([string]$Ip)
+        return (
+            $Ip -like "192.168.*" -or
+            $Ip -like "10.*" -or
+            $Ip -match "^172\.(1[6-9]|2[0-9]|3[0-1])\."
+        )
     }
 
-    $picked = $null
-    if ($private) {
-        $picked = $private | Sort-Object -Property InterfaceMetric | Select-Object -First 1
-    } else {
-        $picked = $all | Sort-Object -Property InterfaceMetric | Select-Object -First 1
+    $defaultRoute = Get-NetRoute -AddressFamily IPv4 -DestinationPrefix "0.0.0.0/0" -ErrorAction SilentlyContinue |
+        Sort-Object -Property RouteMetric |
+        Select-Object -First 1
+
+    if ($defaultRoute) {
+        $onDefaultIface = $all | Where-Object {
+            $_.InterfaceIndex -eq $defaultRoute.InterfaceIndex -and (& $isPrivate $_.IPAddress)
+        } | Select-Object -First 1
+
+        if ($onDefaultIface -and $onDefaultIface.IPAddress) {
+            return $onDefaultIface.IPAddress
+        }
     }
 
-    if ($picked -and $picked.IPAddress) {
-        return $picked.IPAddress
+    $preferred192 = $all | Where-Object { $_.IPAddress -like "192.168.*" } | Select-Object -First 1
+    if ($preferred192 -and $preferred192.IPAddress) {
+        return $preferred192.IPAddress
+    }
+
+    $private = $all | Where-Object { & $isPrivate $_.IPAddress } | Select-Object -First 1
+    if ($private -and $private.IPAddress) {
+        return $private.IPAddress
+    }
+
+    $first = $all | Select-Object -First 1
+    if ($first -and $first.IPAddress) {
+        return $first.IPAddress
     }
 
     return "127.0.0.1"
@@ -81,11 +102,11 @@ function Get-LocalAILanIPv4 {
 
 function Get-LocalAIBaseUrl {
     param(
-        [string]$Host,
+        [string]$HostName,
         [int]$Port = $script:DefaultPort
     )
 
-    $resolvedHost = $Host
+    $resolvedHost = $HostName
     if (-not $resolvedHost) {
         $resolvedHost = $env:LOCALAI_HOST
     }
